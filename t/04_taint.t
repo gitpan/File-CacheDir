@@ -11,12 +11,14 @@ $SIG{__DIE__} = \&confess;
 my $backoff = 5;
 plan tests => $backoff+1;
 
+my $test_dir = "/tmp/make_test_file_cache_dir_dir";
+
 my $cacher;
 my $pause = 2;
 for (1..$backoff) {
   $cacher = new File::CacheDir {
     carry_forward => 1,
-    base_dir => "/tmp/make_test_file_cache_dir_dir",
+    base_dir => $test_dir,
     filename => "taint.$$",
     ttl      => "3 Seconds",
     periods_to_keep => 1,
@@ -26,5 +28,5 @@ for (1..$backoff) {
   sleep ($pause = int($pause*1.5));
 }
 
-$cacher->cleanup("/tmp/make_test_file_cache_dir_dir");
-ok 1;
+$cacher->cleanup($test_dir);
+ok(!-e $test_dir);

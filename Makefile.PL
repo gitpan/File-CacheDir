@@ -5,6 +5,7 @@ WriteMakefile(
     'NAME'		=> 'File::CacheDir',
     'VERSION_FROM'	=> 'CacheDir.pm', # finds $VERSION
     'PREREQ_PM'		=> {}, # e.g., Module::Name => 1.1
+    'AUTHOR' => 'earl@cpan.org',
 );
 
 sub postamble {
