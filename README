@@ -1,0 +1,81 @@
+NAME
+    File::CacheDir - Perl module to aid in keeping track and cleaning up
+    files, quickly and without a cron $Id: CacheDir.pod,v 1.2 2001/06/11
+    17:01:36 earl Exp $
+
+SYNOPSIS
+    CacheDir takes up to three parameters and returns a fully qualified
+    filename. Cool part is that it quickly and automatically cleans up files
+    that are too old.
+
+ARGUMENTS
+    The possible named arguments (which can be named or sent in a hash ref,
+    see below for an example) are,
+
+    filename - which is what you want the file without the directory to be
+    named, like "storebuilder" . time . $$ I would suggest using a script
+    specific word (like the name of the cgi), time and $$ (which is the pid
+    number) in the filename, just so files are easy to track and the
+    filenames are pretty unique
+
+    ttl - how long you want the file to stick around can be given in seconds
+    (3600) or like "1 hour" or "1 day" or even "1 week"
+
+    base_dir - the base directory, like /tmp
+
+CODE REF OVERRIDES
+    Most of the time, the defaults will suffice, but by having code refs in
+    your object, you can override most everything CacheDir does. To how the
+    code refs are used, I walk through the code with a simple example.
+
+    my $cache_dir = new File::CacheDir({ base_dir => '/tmp/example', ttl =>
+    '2 hours', filename => 'example.' . time . ".$$", });
+
+    An object gets created, with the hash passed getting blessed in.
+
+    my $filename = $cache_dir->cache_dir;
+
+    The ttl gets converted to seconds, here 7200. The
+
+    $ttl_dir = $base_dir . $ttl;
+
+    In our example, $ttl_dir = "/tmp/example/7200";
+
+    $self->{ttl_mkpath} - if the ttl directory doesn't exist, it gets made
+    with this code ref
+
+    Next, the number of ttl units since epoch, here it is something like
+    137738. This is
+
+    $self->{int_time} = int(time/$self->{ttl});
+
+    Now, the full directory can be formed
+
+    $dir = $ttl_dir . $self->{int_time};
+
+    If $dir exists, $dir . $self->{filename} gets returned. Otherwise, I
+    look through the $ttl_dir, and for each directory that is too old (more
+    than two units away) I run
+
+    $self->{cleanup} - just deletes the old directory, but this is where a
+    backup could take place, or whatever you like
+
+    Finally, I
+
+    $self->{sub_mkdir} - makes the new directory, $dir
+
+    and return the $filename
+
+SIMPLE EXAMPLE
+      #!/usr/bin/perl -w
+
+      use strict;
+      use File::CacheDir qw(cache_dir);
+
+      my $filename = cache_dir({
+        base_dir => '/tmp',
+        ttl      => '2 hours',
+        filename => 'example.' . time . ".$$",
+      });
+
+      `touch $filename`;

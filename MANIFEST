@@ -1,7 +1,7 @@
 CacheDir.pm
-CacheDir.pod
 Changes
 MANIFEST
+README
 Makefile.PL
 t/01_load.t
 t/02_hash_ref_call.t

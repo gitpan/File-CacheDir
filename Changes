@@ -9,3 +9,7 @@ Revision history for Perl extension File::CacheDir.
   - fixed a little bug
 0.12  Mon Jun  4          2001
   - expanded the perldoc quite a bit
+0.13  Tue Jul 17          2001
+  - got rid of GET_ARGS requirement, allowed for code refs in the new
+0.14  Wed Jul 18          2001
+  - moved perldoc into .pm from a .pod

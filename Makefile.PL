@@ -6,3 +6,15 @@ WriteMakefile(
     'VERSION_FROM'	=> 'CacheDir.pm', # finds $VERSION
     'PREREQ_PM'		=> {}, # e.g., Module::Name => 1.1
 );
+
+sub postamble {
+  return qq^
+    
+pm_to_blib: README
+
+README: CacheDir.pm
+\tpod2text CacheDir.pm >README
+  ^;
+}
+
+1;
