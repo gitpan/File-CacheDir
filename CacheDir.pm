@@ -14,7 +14,7 @@ use POSIX qw( setsid _exit );
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "1.25";
+$VERSION = "1.26";
 
 %EXTANT_DIR = ();
 
@@ -209,7 +209,7 @@ sub cache_dir {
     $self->{last_int_time} = $self->{int_time} - 1;
     $self->{last_int_dir} = "$ttl_dir$self->{last_int_time}/";
     $self->{carry_forward_filename} = "$self->{last_int_dir}$self->{filename}";
-    if(-f $self->{carry_forward_filename}) {
+    if(-e $self->{carry_forward_filename}) {
       unless($self->dash_d($self->{full_dir})) {
         $self->sub_mkdir($self->{full_dir});
         die "couldn't mkpath '$self->{full_dir}': $!" unless($self->dash_d($self->{full_dir}));
