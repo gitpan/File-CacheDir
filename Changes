@@ -19,3 +19,5 @@ Revision history for Perl extension File::CacheDir.
   - using pod2text to generate README file
 0.17 Thu Nov 19        2001
   - getting to work on old perl
+0.19 Thu Feb 19        2002
+  - making a more pure object

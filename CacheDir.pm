@@ -11,7 +11,7 @@ use File::Copy qw(mv);
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "0.17";
+$VERSION = "0.19";
 
 sub new {
   my $type = shift;
@@ -19,71 +19,91 @@ sub new {
   my @PASSED_ARGS = (ref $hash_ref eq 'HASH') ? %{$_[0]} : @_;
   my $cache_object;
   my @DEFAULT_ARGS = (
-    filename      => time . $$,
-    ttl           => "1 day",
-    base_dir      => "/tmp/cache_dir",
-    carry_forward => 1,
-    cookie_name   => "cache_dir",
-    cookie_path   => '/',
-    set_cookie    => 0,
+    filename        => time . $$,
+    ttl             => "1 day",
+    base_dir        => "/tmp/cache_dir",
+    carry_forward   => 1,
+    cookie_name     => "cache_dir",
+    cookie_path     => '/',
+    set_cookie      => 0,
+    periods_to_keep => 2,
   );
   my %ARGS = (@DEFAULT_ARGS, @PASSED_ARGS);
   $cache_object = bless \%ARGS, $type;
 
-  $cache_object->{ttl_mkpath} = sub {
-    my $_ttl_dir = shift;
-    mkpath $_ttl_dir;
-    die "couldn't mkpath '$_ttl_dir': $!" unless(-d $_ttl_dir);
-  } unless(defined $cache_object->{ttl_mkpath} && ref $cache_object->{ttl_mkpath});
-
-  $cache_object->{expired_check} = sub {
-    my $_sub_dir = shift;
-    my $diff = $cache_object->{int_time} - $_sub_dir;
-    if($diff > 2) {
-      return 1;
-    } else {
-      return 0;
+  # clean up a few blank things in the object
+  unless($cache_object->{set_cookie}) {
+    foreach(qw(set_cookie cookie_name cookie_path)) {
+      delete $cache_object->{$_};
     }
-  } unless(defined $cache_object->{expired_check} && ref $cache_object->{expired_check});
-
-  $cache_object->{cleanup} = sub {
-    my $_dir = shift;
-    File::Path::rmtree( $_dir );
-  } unless(defined $cache_object->{cleanup} && ref $cache_object->{cleanup});
-
-  $cache_object->{sub_mkdir} = sub {
-    my $_dir = shift;
-    mkdir $_dir, 0755;
-    die "couldn't mkpath '$_dir': $!" unless(-d $_dir);
-  } unless(defined $cache_object->{sub_mkdir} && ref $cache_object->{sub_mkdir});
+  }
+  foreach(qw(carry_forward)) {
+    delete $cache_object->{$_} unless($cache_object->{$_});
+  }
 
   return $cache_object;
+}
+
+sub ttl_mkpath {
+  my $self = shift;
+  my $_ttl_dir = shift;
+  mkpath $_ttl_dir;
+  die "couldn't mkpath '$_ttl_dir': $!" unless(-d $_ttl_dir);
+}
+
+sub expired_check {
+  my $self = shift;
+  my $_sub_dir = shift;
+  my $diff = $self->{int_time} - $_sub_dir;
+  if($diff > $self->{periods_to_keep}) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+sub cleanup {
+  my $self = shift;
+  my $_dir = shift;
+  File::Path::rmtree( $_dir );
 }
 
 sub handle_ttl {
   my $self = shift;
 
-  $self->{ttl} =~ s/^(\d+)\s*(\w+)$/$1/;
-  $self->{ttl} =  $1 if defined $1;
-  my $units = (defined $2) ? $2 : '';
-  if(($units =~ /^s/i) || (!$units)) {
-    $self->{ttl} = $self->{ttl};
-  } elsif ($units =~ /^m/i) {
-    $self->{ttl} *= 60;
-  } elsif ($units =~ /^h/i) {
-    $self->{ttl} *= 3600;
-  } elsif ($units =~ /^d/i) {
-    $self->{ttl} *= 86400;
-  } elsif ($units =~ /^w/i) {
-    $self->{ttl} *= 604800;
+  if($self->{ttl} =~ /^\d+$/) {
+    # do nothing
+  } elsif($self->{ttl} =~ s/^(\d+)\s*(\D+)$/$1/) {
+    $self->{ttl} =  $1 if defined $1;
+    my $units = (defined $2) ? $2 : '';
+    if(($units =~ /^s/i) || (!$units)) {
+      $self->{ttl} = $self->{ttl};
+    } elsif ($units =~ /^m/i) {
+      $self->{ttl} *= 60;
+    } elsif ($units =~ /^h/i) {
+      $self->{ttl} *= 3600;
+    } elsif ($units =~ /^d/i) {
+      $self->{ttl} *= 86400;
+    } elsif ($units =~ /^w/i) {
+      $self->{ttl} *= 604800;
+    } else {
+       die "invalid ttl '$self->{ttl}', bad units '$units'";
+    }
   } else {
-     die "invalid ttl '$self->{ttl}', bad units '$units'";
+    die "invalid ttl '$self->{ttl}', not just number and couldn't find units";
   }
+}
+
+sub sub_mkdir {
+  my $self = shift;
+  my $_dir = shift;
+  mkdir $_dir, 0755;
+  die "couldn't mkpath '$_dir': $!" unless(-d $_dir);
 }
 
 sub cache_dir {
   my $self = $_[0];
-  unless(ref $self eq __PACKAGE__) {
+  unless(UNIVERSAL::isa($self, __PACKAGE__)) {
     $self = File::CacheDir->new(@_);
   }
 
@@ -93,10 +113,10 @@ sub cache_dir {
   my $ttl_dir = "$self->{base_dir}/$self->{ttl}/";
 
   unless(-d $ttl_dir) {
-    &{$self->{ttl_mkpath}}($ttl_dir);
+    $self->ttl_mkpath($ttl_dir);
   }
 
-  $self->{int_time} ||= (int(time/$self->{ttl}));
+  $self->{int_time} = (int(time/$self->{ttl}));
   $self->{full_dir} = "$ttl_dir$self->{int_time}/";
 
   if($self->{carry_forward}) {
@@ -105,7 +125,7 @@ sub cache_dir {
     $self->{carry_forward_filename} = "$self->{last_int_dir}$self->{filename}";
     if(-f $self->{carry_forward_filename}) {
       unless(-d $self->{full_dir}) {
-        &{$self->{sub_mkdir}}($self->{full_dir});
+        $self->sub_mkdir($self->{full_dir});
         die "couldn't mkpath '$self->{full_dir}': $!" unless(-d $self->{full_dir});
       }
 
@@ -131,17 +151,16 @@ sub cache_dir {
     }
     return $self->{full_path};
   } else {
-    local *DIR;
     opendir(DIR, $ttl_dir);
     while (my $sub_dir = readdir(DIR)) {
       next if($sub_dir =~ /^\.\.?$/);
 
-      if($self->{expired_check} && &{$self->{expired_check}}($sub_dir)) {
-        &{$self->{cleanup}}("$ttl_dir$sub_dir");
+      if($self->expired_check($sub_dir)) {
+        $self->cleanup("$ttl_dir$sub_dir");
       }
     }
     closedir(DIR);
-    &{$self->{sub_mkdir}}($self->{full_dir});
+    $self->sub_mkdir($self->{full_dir});
     die "couldn't mkpath '$self->{full_dir}': $!" unless(-d $self->{full_dir});
     $self->{full_path} = "$self->{full_dir}$self->{filename}";
     if($self->{set_cookie}) {
@@ -179,59 +198,60 @@ __END__
 =head1 NAME
 
 File::CacheDir - Perl module to aid in keeping track and cleaning up files, quickly and without a cron
-$Id: CacheDir.pm,v 1.2 2001/11/20 00:27:19 earl Exp $
+$Id: CacheDir.pm,v 1.3 2002/02/19 20:41:43 earl Exp $
 
 =head1 DESCRIPTION
 
-CacheDir takes up to three parameters and returns a fully qualified filename.
-Cool part is that it quickly and automatically cleans up files that are too old.
+CacheDir attempts to keep files around for some ttl, while
+quickly, automatically and cronlessly cleaning up files that are too old.
 
 =head1 ARGUMENTS
 
 The possible named arguments (which can be named or sent in a hash ref,
 see below for an example) are,
 
-filename      - which is what you want the file 
-                without the directory to be named, 
-                like "storebuilder" . time . $$
-                I would suggest using a script 
-                specific word (like the name of the cgi), 
-                time and $$ (which is the pid number) 
-                in the filename, just so files 
-                are easy to track and the filenames 
-                are pretty unique
-                default is time . $$
+base_dir        - the base directory
+                  default is '/tmp/cache_dir'
+
+carry_forward   - whether or not to move forward the file 
+                  when time periods get crossed.  For example,
+                  if your ttl is 3600, and you move from the 
+                  278711 to the 278712 hour, if carry 
+                  forward is set, it will refresh a cookie 
+                  (if set_cookie is true) and move the file
+                  to the new location
+                  default is 1
+
+content_typed   - whether or not you have printed a 
+                  Content-type header
+                  default is 0
+
+cookie_name     - the name of your cookie
+                  default is 'cache_dir'
+
+cookie_path     - the path for your cookie
+                  default is '/'
+
+filename        - what you want the file to be named 
+                  (not including the directory), 
+                  like "storebuilder" . time . $$
+                  I would suggest using a script 
+                  specific word (like the name of the cgi), 
+                  time and $$ (which is the pid number) 
+                  in the filename, just so files 
+                  are easy to track and the filenames 
+                  are pretty unique
+                  default is time . $$
            
-ttl           - how long you want the file to stick around
-                can be given in seconds (3600) or like 
-                "1 hour" or "1 day" or even "1 week"
-                default is '1 day'
-           
-base_dir      - the base directory
-                default is '/tmp/cache_dir'
+periods_to_keep - how many old periods you would like to keep
 
-content_typed - whether or not you have printed a 
-                Content-type header
-                default is 0
+set_cookie      - whether or not to set a cookie
+                  default is 0
 
-set_cookie    - whether or not to set a cookie
-                default is 0
-
-cookie_name   - the name of your cookie
-                default is 'cache_dir'
-
-cookie_path   - the path for your cookie
-                default is '/'
-
-carry_forward - whether or not to move forward the file 
-                when time periods get crossed for example 
-                if your ttl is 3600, and you move from the 
-                278711 to the 278712 hour, if carry 
-                forward is set, it will refresh a cookie 
-                (if set_cookie is true) and move the file
-                to the new location
-                default is 1
-
+ttl             - how long you want the file to stick around
+                  can be given in seconds (3600) or like 
+                  "1 hour" or "1 day" or even "1 week"
+                  default is '1 day'
 
 =head1 COOOKIES
 
@@ -244,11 +264,11 @@ The cookie that gets set is the full path of the file with your base_dir swapped
 for users to not know full path to your files.  The filename that gets returned from a cache_dir call,
 however is the full path.
 
-=head1 CODE REF OVERRIDES
+=head1 METHOD OVERRIDES
 
-Most of the time, the defaults will suffice, but by having code refs
-in your object, you can override most everything CacheDir does.  To
-how the code refs are used, I walk through the code with a simple example.
+Most of the time, the defaults will suffice, but using your own object
+methods, you can override most everything CacheDir does.  To show
+which methods are used, I walk through the code with a simple example.
 
 my $cache_dir = File::CacheDir->new({
   base_dir => '/tmp/example',
@@ -266,7 +286,7 @@ $ttl_dir = $base_dir . $ttl;
 
 In our example, $ttl_dir = "/tmp/example/7200"; 
 
-$self->{ttl_mkpath} - if the ttl directory does not exist, it gets made with this code ref 
+$self->ttl_mkpath - if the ttl directory does not exist, it gets made
 
 Next, the number of ttl units since epoch, here it is something like 137738.  This is
 
@@ -277,14 +297,14 @@ Now, the full directory can be formed
 $self->{full_dir} = $ttl_dir . $self->{int_time};
 
 If $self->{full_dir} exists, $self->{full_dir} . $self->{filename} gets returned.  Otherwise, I look through
-the $ttl_dir, and for each directory that is too old (more than two units away) I run
+the $ttl_dir, and for each directory that is too old (more than $self->{periods_to_keep}) I run
 
-$self->{cleanup} - just deletes the old directory, but this is where a backup could take place,
+$self->cleanup - just deletes the old directory, but this is where a backup could take place,
 or whatever you like.
 
 Finally, I
 
-$self->{sub_mkdir} - makes the new directory, $self->{full_dir}
+$self->sub_mkdir - makes the new directory, $self->{full_dir}
 
 and return the $filename
 
