@@ -7,7 +7,7 @@ use vars qw(@ISA @EXPORT_OK $VERSION);
 use Exporter;
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "0.10";
+$VERSION = "0.11";
 
 use Getopt::GetArgs;
 use File::Path qw(mkpath rmtree);
@@ -21,7 +21,7 @@ sub new {
     ttl      => "1 day",
     base_dir => "/tmp/cache_dir",
   );
-  my $cache_object = bless {GetArgs(\@_, \@DEFAULT_ARGS)}, $type;
+  my $cache_object = bless {GetArgs(@_, @DEFAULT_ARGS)}, $type;
   return $cache_object;
 }
 
