@@ -1,0 +1,6 @@
+CacheDir.pm
+Changes
+MANIFEST
+Makefile.PL
+t/01_load.t
+t/02_usage.t

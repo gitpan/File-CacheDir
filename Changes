@@ -1,0 +1,6 @@
+Revision history for Perl extension File::CacheDir.
+
+0.01  Mon Jun  4 10:13:27 2001
+	- original version; created by h2xs 1.20 with options
+		-X File::CacheDir
+
