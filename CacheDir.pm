@@ -3,7 +3,7 @@
 package File::CacheDir;
 
 use strict;
-use vars qw(@ISA @EXPORT_OK $VERSION);
+use vars qw(@ISA @EXPORT_OK $VERSION %EXTANT_DIR);
 use Exporter;
 use CGI qw();
 use File::Path qw(mkpath);
@@ -14,7 +14,9 @@ use POSIX qw( setsid _exit );
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "1.22";
+$VERSION = "1.24";
+
+%EXTANT_DIR = ();
 
 sub new {
   my $type = shift;
@@ -23,6 +25,7 @@ sub new {
   my $cache_object;
   my @DEFAULT_ARGS = (
     base_dir          => "/tmp/cache_dir",
+    cache_stats       => 1,
     carry_forward     => 1,
     cleanup_fork      => 1,
     # percentage of time to attempt cleanup run
@@ -58,7 +61,7 @@ sub ttl_mkpath {
   my $self = shift;
   my $_ttl_dir = shift;
   mkpath $_ttl_dir;
-  die "couldn't mkpath '$_ttl_dir': $!" unless(-d $_ttl_dir);
+  die "couldn't mkpath '$_ttl_dir': $!" unless($self->dash_d($_ttl_dir));
 }
 
 sub expired_check {
@@ -72,6 +75,23 @@ sub expired_check {
   }
 }
 
+### want to be able to easily track -d checks, and want to have
+### all the cache_stats code in one place
+sub dash_d {
+  my $self = shift;
+  my $_dir = shift;
+  my $return = 0;
+  if($self->{cache_stats} && $EXTANT_DIR{$_dir}) {
+    $return = 1;
+  } else {
+    if(-d $_dir) {
+      $return = 1;
+      $EXTANT_DIR{$_dir} = 1;
+    }
+  }
+  return $return;
+}
+
 ### sub to wrap the cleanup code... this way we can control
 ### when cleanup should occur, even if somebody overides
 ### the cleanup logic
@@ -79,6 +99,13 @@ sub expired_check {
 sub perhaps_cleanup {
   my $self = shift;
   my $_dir = shift;
+
+  ### let's do this each time a cleanup might happen
+  ### might be a little much, but shouldn't be anywhere
+  ### near as bad as the pre-cache days
+  foreach my $this_dir (keys %EXTANT_DIR) {
+    delete $EXTANT_DIR{$this_dir} unless(-d $EXTANT_DIR{$this_dir});
+  }
 
   ### might want to do cleanup only a portion of the time
   return undef if( rand(100) >= $self->{cleanup_frequency} );
@@ -94,13 +121,15 @@ sub perhaps_cleanup {
   ## all checks passed... (we're still here)
   ## make the lockfile, do the cleanup, and whatnot
 
+  ### realize this won't work over nfs, but better than nothing
   open(FILE,">$file");
-  close(FILE);
+  flock(FILE, 6) or return undef;
 
   if($self->{cleanup_fork}) {
     return if strong_fork();
   }
   $self->cleanup( $_dir );
+  close(FILE);
   unlink $file;
   child_exit() if($self->{cleanup_fork});
 }
@@ -151,7 +180,7 @@ sub sub_mkdir {
   my $self = shift;
   my $_dir = shift;
   mkdir $_dir, 0755;
-  die "couldn't mkpath '$_dir': $!" unless(-d $_dir);
+  die "couldn't mkpath '$_dir': $!" unless($self->dash_d($_dir));
 }
 
 sub cache_dir {
@@ -167,7 +196,7 @@ sub cache_dir {
   $self->{base_dir} =~ s@/$@@;
   my $ttl_dir = "$self->{base_dir}/$self->{ttl}/";
 
-  unless(-d $ttl_dir) {
+  unless($self->dash_d($ttl_dir)) {
     $self->ttl_mkpath($ttl_dir);
   }
 
@@ -181,9 +210,9 @@ sub cache_dir {
     $self->{last_int_dir} = "$ttl_dir$self->{last_int_time}/";
     $self->{carry_forward_filename} = "$self->{last_int_dir}$self->{filename}";
     if(-f $self->{carry_forward_filename}) {
-      unless(-d $self->{full_dir}) {
+      unless($self->dash_d($self->{full_dir})) {
         $self->sub_mkdir($self->{full_dir});
-        die "couldn't mkpath '$self->{full_dir}': $!" unless(-d $self->{full_dir});
+        die "couldn't mkpath '$self->{full_dir}': $!" unless($self->dash_d($self->{full_dir}));
       }
 
       $self->{full_path} = "$self->{full_dir}$self->{filename}";
@@ -202,7 +231,7 @@ sub cache_dir {
     }
   }
 
-  if(-d $self->{full_dir}) {
+  if($self->dash_d($self->{full_dir})) {
     $self->{full_path} = "$self->{full_dir}$self->{filename}";
     if($self->{set_cookie}) {
       ($self->{cookie_value}) = $self->{full_path} =~ /^$self->{base_dir}(.+)/;
@@ -221,7 +250,7 @@ sub cache_dir {
     }
     closedir(DIR);
     $self->sub_mkdir($self->{full_dir});
-    die "couldn't mkpath '$self->{full_dir}': $!" unless(-d $self->{full_dir});
+    die "couldn't mkpath '$self->{full_dir}': $!" unless($self->dash_d($self->{full_dir}));
     $self->{full_path} = "$self->{full_dir}$self->{filename}";
     if($self->{set_cookie}) {
       ($self->{cookie_value}) = $self->{full_path} =~ /^$self->{base_dir}(.+)/;
@@ -324,8 +353,6 @@ sub strong_fork {
     # calling any DESTROY nor END blocks while the detach
     # variables are still within scope.  It also slams all
     # FD_CLOEXEC handles shut abruptly.
-#    CORE::exit;
-#    exec "cat /dev/null";
     _exit(0);
   }
   # This is the Grandchild process running.
@@ -383,13 +410,14 @@ sub child_exit {
   CORE::exit;
 }
 
+1;
 
 __END__
 
 =head1 NAME
 
 File::CacheDir - Perl module to aid in keeping track and cleaning up files, quickly and without a cron
-$Id: CacheDir.pm,v 1.15 2003/09/11 16:09:21 earl Exp $
+$Id: CacheDir.pm,v 1.18 2004/04/14 19:46:58 earl Exp $
 
 =head1 DESCRIPTION
 
@@ -403,6 +431,9 @@ see below for an example) are,
 
 base_dir          - the base directory
                     default is '/tmp/cache_dir'
+
+cache_stats       - whether or not to try and cache -d checks
+                    default is 1
 
 carry_forward     - whether or not to move forward the file
                     when time periods get crossed.  For example,
