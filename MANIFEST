@@ -4,4 +4,5 @@ Changes
 MANIFEST
 Makefile.PL
 t/01_load.t
-t/02_usage.t
+t/02_hash_ref_call.t
+t/03_array_call.t  

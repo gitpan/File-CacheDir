@@ -7,27 +7,56 @@ use vars qw(@ISA @EXPORT_OK $VERSION);
 use Exporter;
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "0.12";
+$VERSION = "0.13";
 
-use Getopt::GetArgs;
 use File::Path qw(mkpath rmtree);
-use Carp qw(croak);
 
 sub new {
   my $type = shift;
   my $hash_ref = $_[0];
+  my @PASSED_ARGS = (ref $hash_ref eq 'HASH') ? %{$_[0]} : @_;
+  my $cache_object;
   my @DEFAULT_ARGS = (
     filename => time . ".$$",
     ttl      => "1 day",
     base_dir => "/tmp/cache_dir",
   );
-  my $cache_object = bless {GetArgs(@_, @DEFAULT_ARGS)}, $type;
+  my %ARGS = (@DEFAULT_ARGS, @PASSED_ARGS);
+  $cache_object = bless \%ARGS, $type;
+
+  $cache_object->{ttl_mkpath} = sub {
+    my $_ttl_dir = shift;
+    mkpath $_ttl_dir;
+    die "couldn't mkpath '$_ttl_dir': $!" unless(-d $_ttl_dir);
+  } unless(defined $cache_object->{ttl_mkpath} && ref $cache_object->{ttl_mkpath});
+
+  $cache_object->{expired_check} = sub {
+    my $_sub_dir = shift;
+    my $diff = $cache_object->{int_time} - $_sub_dir;
+    if($diff > 2) {
+      return 1;
+    } else {
+      return 0;
+    }
+  } unless(defined $cache_object->{expired_check} && ref $cache_object->{expired_check});
+
+  $cache_object->{cleanup} = sub {
+    my $_dir = shift;
+    File::Path::rmtree( $_dir );
+  } unless(defined $cache_object->{cleanup} && ref $cache_object->{cleanup});
+
+  $cache_object->{sub_mkdir} = sub {
+    my $_dir = shift;
+    mkdir $_dir, 0755;
+    die "couldn't mkpath '$_dir': $!" unless(-d $_dir);
+  } unless(defined $cache_object->{sub_mkdir} && ref $cache_object->{sub_mkdir});
+
   return $cache_object;
 }
 
 sub cache_dir {
   my $self = $_[0];
-  if(!ref($self) || ref $self eq 'HASH') {
+  unless(ref $self eq __PACKAGE__) {
     $self = new File::CacheDir(@_);
   }
   
@@ -45,19 +74,14 @@ sub cache_dir {
   } elsif ($units =~ /^w/i) {
     $self->{ttl} *= 604800;
   } else {
-     croak "invalid ttl '$self->{ttl}', bad units '$units'";
+     die "invalid ttl '$self->{ttl}', bad units '$units'";
   }
 
-  $self->{base_dir} .= '/' unless $self->{base_dir} =~ m@/$@;
+  $self->{base_dir} .= '/' unless($self->{base_dir} =~ m@/$@);
   my $ttl_dir = "$self->{base_dir}$self->{ttl}/";
 
   unless(-d $ttl_dir) {
-    $self->{ttl_mkpath} = sub {
-      mkpath $ttl_dir;
-      die "couldn't mkpath '$ttl_dir': $!" unless(-d $ttl_dir);
-    } unless(defined $self->{ttl_mkpath} && ref $self->{ttl_mkpath});
-
-    &{$self->{ttl_mkpath}};
+    &{$self->{ttl_mkpath}}($ttl_dir);
   }
 
   $self->{int_time} ||= (int(time/$self->{ttl}));
@@ -69,21 +93,15 @@ sub cache_dir {
     ### This is where the BACKGROUND will go
     opendir(DIR, $ttl_dir);
     while (my $sub_dir = readdir(DIR)) {
-      next if($sub_dir =~ /^..?$/);
-      if($self->{int_time} - $sub_dir > 2) {
-        $self->{cleanup} = sub {
-          File::Path::rmtree( "$ttl_dir$sub_dir" );
-        } unless(defined $self->{cleanup} && ref $self->{cleanup});
+      next if($sub_dir =~ /^\.\.?$/);
+      
+      if($self->{expired_check} && &{$self->{expired_check}}($sub_dir)) {
     
-        &{$self->{cleanup}};
+        &{$self->{cleanup}}("$ttl_dir$sub_dir");
       }
     }
     closedir(DIR);
-    $self->{sub_mkdir} = sub {
-      mkdir $dir, 0755;
-      die "couldn't mkpath '$dir': $!" unless(-d $dir);
-    } unless(defined $self->{sub_mkdir} && ref $self->{sub_mkdir});
-    &{$self->{sub_mkdir}};
+    &{$self->{sub_mkdir}}($dir);
     return "$dir$self->{filename}";
   }
 }
