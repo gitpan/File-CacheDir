@@ -14,7 +14,7 @@ use POSIX qw( setsid _exit );
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "1.23";
+$VERSION = "1.25";
 
 %EXTANT_DIR = ();
 
@@ -121,13 +121,15 @@ sub perhaps_cleanup {
   ## all checks passed... (we're still here)
   ## make the lockfile, do the cleanup, and whatnot
 
+  ### realize this won't work over nfs, but better than nothing
   open(FILE,">$file");
-  close(FILE);
+  flock(FILE, 6) or return undef;
 
   if($self->{cleanup_fork}) {
     return if strong_fork();
   }
   $self->cleanup( $_dir );
+  close(FILE);
   unlink $file;
   child_exit() if($self->{cleanup_fork});
 }
@@ -415,7 +417,7 @@ __END__
 =head1 NAME
 
 File::CacheDir - Perl module to aid in keeping track and cleaning up files, quickly and without a cron
-$Id: CacheDir.pm,v 1.17 2004/04/14 00:16:03 earl Exp $
+$Id: CacheDir.pm,v 1.19 2004/06/15 06:42:54 earl Exp $
 
 =head1 DESCRIPTION
 
