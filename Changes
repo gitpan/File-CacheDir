@@ -23,3 +23,5 @@ Revision history for Perl extension File::CacheDir.
   - making a more pure object
 1.02 Fri Jun 14        2002
   - adding carried_forward flag, stable enough for beta
+1.03 Sat Aug 30        2003
+  - Taint clean - patch by Rob Brown bbb@cpan.org

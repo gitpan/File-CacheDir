@@ -6,12 +6,13 @@ use strict;
 use vars qw(@ISA @EXPORT_OK $VERSION);
 use Exporter;
 use CGI qw();
-use File::Path qw(mkpath rmtree);
+use File::Path qw(mkpath);
 use File::Copy qw(mv);
+use IO::Dir;
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "1.02";
+$VERSION = "1.03";
 
 sub new {
   my $type = shift;
@@ -64,8 +65,17 @@ sub expired_check {
 
 sub cleanup {
   my $self = shift;
-  my $_dir = shift;
-  File::Path::rmtree( $_dir );
+  my $root = shift;
+  return unlink $root if
+    -l $root || !-d _;
+  if (my $dir = IO::Dir->new($root)) {
+    while (defined(my $node = $dir->read)) {
+      next if $node =~ /^\.\.?$/;
+      $node = $1 if $node =~ /(.+)/;
+      $self->cleanup("$root/$node");
+    }
+  }
+  return rmdir $root;
 }
 
 sub handle_ttl {
@@ -120,6 +130,8 @@ sub cache_dir {
 
   $self->{int_time} = (int(time/$self->{ttl}));
   $self->{full_dir} = "$ttl_dir$self->{int_time}/";
+  $self->{last_int_time} = $self->{int_time} - 1;
+  $self->{last_dir} = "$ttl_dir$self->{last_int_time}/";
 
   if($self->{carry_forward}) {
     $self->{last_int_time} = $self->{int_time} - 1;
@@ -158,7 +170,7 @@ sub cache_dir {
     opendir(DIR, $ttl_dir);
     while (my $sub_dir = readdir(DIR)) {
       next if($sub_dir =~ /^\.\.?$/);
-
+      $sub_dir = $1 if $sub_dir =~ /(.+)/;
       if($self->expired_check($sub_dir)) {
         $self->cleanup("$ttl_dir$sub_dir");
       }
@@ -202,7 +214,7 @@ __END__
 =head1 NAME
 
 File::CacheDir - Perl module to aid in keeping track and cleaning up files, quickly and without a cron
-$Id: CacheDir.pm,v 1.3 2002/02/19 20:41:43 earl Exp $
+$Id: CacheDir.pm,v 1.7 2003/08/30 17:59:52 rob Exp $
 
 =head1 DESCRIPTION
 

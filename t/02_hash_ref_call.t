@@ -2,7 +2,7 @@
 use strict;
 use Test;
 
-BEGIN { plan tests => 2}
+BEGIN { plan tests => 3}
 use File::CacheDir qw(cache_dir);
 
 my $filename = cache_dir({
@@ -14,3 +14,4 @@ my $filename = cache_dir({
 `touch $filename`;
 ok(-e $filename);
 ok(unlink $filename);
+ok(!system("rm -rf /tmp/make_test_file_cache_dir_dir"));
