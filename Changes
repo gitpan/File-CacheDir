@@ -1,5 +1,7 @@
 Revision history for Perl extension File::CacheDir.
 
+1.27 Mon Nov 16  2004
+  - let's use rename instead of mv
 1.26 Mon Nov 16  2004
   - doing a -e check on carry forward instead of -f, so it works for directories
 1.25 Mon Jun 14  2004

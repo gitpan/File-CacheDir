@@ -7,14 +7,13 @@ use vars qw(@ISA @EXPORT_OK $VERSION %EXTANT_DIR);
 use Exporter;
 use CGI qw();
 use File::Path qw(mkpath);
-use File::Copy qw(mv);
 use IO::Dir;
 
 use POSIX qw( setsid _exit );
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "1.26";
+$VERSION = "1.27";
 
 %EXTANT_DIR = ();
 
@@ -217,8 +216,8 @@ sub cache_dir {
 
       $self->{full_path} = "$self->{full_dir}$self->{filename}";
 
-      mv $self->{carry_forward_filename}, $self->{full_path};
-      die "couldn't mv $self->{carry_forward_filename}, $self->{full_path}: $!" unless(-e $self->{full_path});
+      rename $self->{carry_forward_filename}, $self->{full_path};
+      die "couldn't rename $self->{carry_forward_filename}, $self->{full_path}: $!" unless(-e $self->{full_path});
 
       $self->{carried_forward} = 1;
 
