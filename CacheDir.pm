@@ -7,7 +7,7 @@ use vars qw(@ISA @EXPORT_OK $VERSION);
 use Exporter;
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "0.11";
+$VERSION = "0.12";
 
 use Getopt::GetArgs;
 use File::Path qw(mkpath rmtree);

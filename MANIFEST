@@ -1,4 +1,5 @@
 CacheDir.pm
+CacheDir.pod
 Changes
 MANIFEST
 Makefile.PL
