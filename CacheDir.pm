@@ -11,7 +11,7 @@ use File::Copy qw(mv);
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "0.19";
+$VERSION = "1.02";
 
 sub new {
   my $type = shift;
@@ -107,6 +107,8 @@ sub cache_dir {
     $self = File::CacheDir->new(@_);
   }
 
+  delete $self->{carried_forward};
+
   $self->handle_ttl;
   
   $self->{base_dir} =~ s@/$@@;
@@ -133,6 +135,8 @@ sub cache_dir {
 
       mv $self->{carry_forward_filename}, $self->{full_path};
       die "couldn't mv $self->{carry_forward_filename}, $self->{full_path}: $!" unless(-e $self->{full_path});
+
+      $self->{carried_forward} = 1;
       
       if($self->{set_cookie}) {
         ($self->{cookie_value}) = $self->{full_path} =~ /^$self->{base_dir}(.+)/;
@@ -219,7 +223,8 @@ carry_forward   - whether or not to move forward the file
                   278711 to the 278712 hour, if carry 
                   forward is set, it will refresh a cookie 
                   (if set_cookie is true) and move the file
-                  to the new location
+                  to the new location, and 
+                  set $self->{carried_forward} = 1
                   default is 1
 
 content_typed   - whether or not you have printed a 
