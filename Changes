@@ -17,3 +17,5 @@ Revision history for Perl extension File::CacheDir.
   - allowing for cookies to get set, and adding carry_forward function
 0.16 Thu Oct 18        2001
   - using pod2text to generate README file
+0.17 Thu Nov 19        2001
+  - getting to work on old perl

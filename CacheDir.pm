@@ -11,7 +11,7 @@ use File::Copy qw(mv);
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "0.16";
+$VERSION = "0.17";
 
 sub new {
   my $type = shift;
@@ -179,9 +179,9 @@ __END__
 =head1 NAME
 
 File::CacheDir - Perl module to aid in keeping track and cleaning up files, quickly and without a cron
-$Id: CacheDir.pm,v 1.15 2001/10/16 17:07:57 earl Exp $
+$Id: CacheDir.pm,v 1.2 2001/11/20 00:27:19 earl Exp $
 
-=head1 SYNOPSIS
+=head1 DESCRIPTION
 
 CacheDir takes up to three parameters and returns a fully qualified filename.
 Cool part is that it quickly and automatically cleans up files that are too old.
@@ -288,7 +288,7 @@ $self->{sub_mkdir} - makes the new directory, $self->{full_dir}
 
 and return the $filename
 
-=head1 SIMPLE EXAMPLE
+=head1 SYNOPSIS
 
   #!/usr/bin/perl -w
 
@@ -308,7 +308,7 @@ and return the $filename
 Thanks to Rob Brown <rbrown@about-inc.com> for discussing general concepts, helping me think through
 things, offering suggestions and doing the most recent code review.  The idea for carry_forward was pretty
 well all Rob.  I didn't see a need, but Rob convinced me of one.  Since Rob first introduced the idea to
-me, I have seen CacheDir break three different programmers code.  With carry_forward, no problems.  Finally,
+me, I have seen CacheDir break three different programmers' code.  With carry_forward, no problems.  Finally,
 Rob changed my non-CGI cookie stuff to use CGI, thus avoiding many a flame war.
 
 Thanks to Paul T Seamons <paul@seamons.com> for listening to my ideas, offerings suggestions, using CacheDir
@@ -316,5 +316,5 @@ and giving feedback.  Using File::CacheDir was all Paul's idea.  Also, the case 
 I owe to Paul.  Finally, thanks to Paul for the idea of this THANKS section.
 
 Thanks to Wes Cerny <wcerny@about-inc.com> for using CacheDir, and giving feedback.  Also, thanks to Wes
-for a last minute code review.  Wes had me change the -e check on $self->{carry_forward_filename} to -f,
-based on his experience with CacheDir.
+for a last minute code review.  Wes had me change the existence check on $self->{carry_forward_filename} to a
+plain file check based on his experience with CacheDir.

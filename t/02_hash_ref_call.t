@@ -6,8 +6,9 @@ BEGIN { plan tests => 2}
 use File::CacheDir qw(cache_dir);
 
 my $filename = cache_dir({
-  ttl      => '3 hours',
+  base_dir => '/tmp/make_test_file_cache_dir_dir',
   filename => 'example.' . time . ".$$",
+  ttl      => '3 hours',
 });
 
 `touch $filename`;
