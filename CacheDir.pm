@@ -11,7 +11,7 @@ use File::Copy qw(mv);
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "0.15";
+$VERSION = "0.16";
 
 sub new {
   my $type = shift;
@@ -308,11 +308,12 @@ and return the $filename
 Thanks to Rob Brown <rbrown@about-inc.com> for discussing general concepts, helping me think through
 things, offering suggestions and doing the most recent code review.  The idea for carry_forward was pretty
 well all Rob.  I didn't see a need, but Rob convinced me of one.  Since Rob first introduced the idea to
-me, I have seen CacheDir break three different programmers code.  With carry_forward, no problems.
+me, I have seen CacheDir break three different programmers code.  With carry_forward, no problems.  Finally,
+Rob changed my non-CGI cookie stuff to use CGI, thus avoiding many a flame war.
 
 Thanks to Paul T Seamons <paul@seamons.com> for listening to my ideas, offerings suggestions, using CacheDir
 and giving feedback.  Using File::CacheDir was all Paul's idea.  Also, the case of CacheDir and cache_dir
-I owe to Paul.
+I owe to Paul.  Finally, thanks to Paul for the idea of this THANKS section.
 
 Thanks to Wes Cerny <wcerny@about-inc.com> for using CacheDir, and giving feedback.  Also, thanks to Wes
 for a last minute code review.  Wes had me change the -e check on $self->{carry_forward_filename} to -f,

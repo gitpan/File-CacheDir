@@ -14,4 +14,6 @@ Revision history for Perl extension File::CacheDir.
 0.14  Wed Jul 18          2001
   - moved perldoc into .pm from a .pod
 0.15  Wed Oct 17          2001
-  - allowing for cookies to get set, and and adding carry_forward function
+  - allowing for cookies to get set, and adding carry_forward function
+0.16 Thu Oct 18        2001
+  - using pod2text to generate README file
