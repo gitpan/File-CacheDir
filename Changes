@@ -1,5 +1,7 @@
 Revision history for Perl extension File::CacheDir.
 
+1.21 Wed Sep 10        2003
+  - Need more than exists check on content_typed, want to check value
 1.20 Mon Sep  9        2003
   - Forking on cleanup and allowing for more control of when cleanup gets called
 1.03 Sat Aug 30        2003

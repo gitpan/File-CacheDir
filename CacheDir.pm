@@ -14,7 +14,7 @@ use POSIX qw( setsid _exit );
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "1.20";
+$VERSION = "1.21";
 
 sub new {
   my $type = shift;
@@ -244,7 +244,7 @@ sub set_cookie {
      -value => $1,
      -path  => $self->{cookie_path},
      );
-  if (exists $self->{content_typed}) {
+  if ($self->{content_typed}) {
     print qq{<meta http-equiv="Set-Cookie" content="$new_cookie">\n};
   } else {
     print "Set-Cookie: $new_cookie\n";
@@ -388,7 +388,7 @@ __END__
 =head1 NAME
 
 File::CacheDir - Perl module to aid in keeping track and cleaning up files, quickly and without a cron
-$Id: CacheDir.pm,v 1.12 2003/09/09 21:30:56 earl Exp $
+$Id: CacheDir.pm,v 1.13 2003/09/09 22:37:35 rob Exp $
 
 =head1 DESCRIPTION
 
