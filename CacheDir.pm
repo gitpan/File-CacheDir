@@ -14,7 +14,7 @@ use POSIX qw( setsid _exit );
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "1.21";
+$VERSION = "1.22";
 
 sub new {
   my $type = shift;
@@ -213,6 +213,7 @@ sub cache_dir {
     opendir(DIR, $ttl_dir);
     while (my $sub_dir = readdir(DIR)) {
       next if($sub_dir =~ /^\.\.?$/);
+      next if($sub_dir =~ /$self->{cleanup_suffix}/);
       $sub_dir = $1 if $sub_dir =~ /(.+)/;
       if($self->expired_check($sub_dir)) {
         $self->perhaps_cleanup("$ttl_dir$sub_dir");
@@ -388,7 +389,7 @@ __END__
 =head1 NAME
 
 File::CacheDir - Perl module to aid in keeping track and cleaning up files, quickly and without a cron
-$Id: CacheDir.pm,v 1.13 2003/09/09 22:37:35 rob Exp $
+$Id: CacheDir.pm,v 1.15 2003/09/11 16:09:21 earl Exp $
 
 =head1 DESCRIPTION
 

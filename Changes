@@ -1,5 +1,7 @@
 Revision history for Perl extension File::CacheDir.
 
+1.22 Thu Sep 11        2003
+  - Trying to stop nice .cleanup.lock recursion bug
 1.21 Wed Sep 10        2003
   - Need more than exists check on content_typed, want to check value
 1.20 Mon Sep  9        2003
