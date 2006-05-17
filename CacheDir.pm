@@ -13,7 +13,7 @@ use POSIX qw( setsid _exit );
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "1.28";
+$VERSION = "1.29";
 
 %EXTANT_DIR = ();
 
@@ -238,7 +238,7 @@ sub cache_dir {
     }
     return $self->{full_path};
   } else {
-    if( rand(100) >= $self->{cleanup_frequency}) {
+    if( rand(100) < $self->{cleanup_frequency}) {
       opendir(DIR, $ttl_dir);
       while (my $sub_dir = readdir(DIR)) {
         next if($sub_dir =~ /^\.\.?$/);
@@ -418,7 +418,7 @@ __END__
 =head1 NAME
 
 File::CacheDir - Perl module to aid in keeping track and cleaning up files, quickly and without a cron
-$Id: CacheDir.pm,v 1.20 2005/01/06 09:44:27 earl Exp $
+$Id: CacheDir.pm,v 1.22 2006/05/17 00:05:34 earl Exp $
 
 =head1 DESCRIPTION
 
