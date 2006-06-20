@@ -13,7 +13,7 @@ use POSIX qw( setsid _exit );
 
 @ISA = ('Exporter');
 @EXPORT_OK  = qw( cache_dir );
-$VERSION = "1.29";
+$VERSION = "1.30";
 
 %EXTANT_DIR = ();
 
@@ -342,7 +342,7 @@ sub strong_fork {
   if (!defined $grandchild_pid) { # Fork failed
     print STDERR "Second process [$$] failed to fork for [$0]! [$!]\n";
     close WPID;
-    CORE::exit;
+    _exit(0);
   } elsif ($grandchild_pid) { # Intermediate Child process
     # Stuff the magic grandchild id down the pipe
     # so grandpa knows who it is.  Intermediate process
@@ -408,7 +408,7 @@ sub strong_fork {
 }
 
 sub child_exit {
-  CORE::exit;
+  _exit(0);
 }
 
 1;

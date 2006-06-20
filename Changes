@@ -1,5 +1,7 @@
 Revision history for Perl extension File::CacheDir.
 
+1.30 Tue Jun 20 2006
+  - Trying to avoid using CORE::exit - as suggested by Rob Brown bbb@cpan.org
 1.29 Tue May 16 2006
   - Fix cleanup_frequency reverse logic - patch by Rob Brown bbb@cpan.org
 1.28 Thu Jul 14 2005
